@@ -112,13 +112,11 @@ try:
         else:
             st.warning("Não há dados registrados para este mês e ano.")
 
-    # --- ABA 5 ATUALIZADA: MAPA DE CALOR FIXO ---
+    # --- ABA 5: MAPA DE CALOR COM GRADIENTE SUAVE E LIMITES FIXOS ---
     with aba5:
         st.subheader("Mapa de Calor: Planejamento de Terraplenagem e Fundações")
         st.markdown("""
-        **Regras de Cor (Absolutas e Fixas):** 🟢 **Verde:** Menos de 150 mm (Ideal)  
-        🟡 **Amarelo:** De 150 mm a 400 mm (Atenção moderada)  
-        🔴 **Vermelho:** Acima de 400 mm (Alto risco)
+        **Transição de Cores:** 🟢 **Verde:** Tendendo a 0 mm | 🟡 **Amarelo:** Chegando em 150 mm | 🔴 **Vermelho:** Acima de 400 mm
         """)
 
         df_heatmap = df_filtrado.groupby(['Ano', 'Mes'])['Chuva'].sum().reset_index()
@@ -126,17 +124,18 @@ try:
         df_pivot = df_pivot.sort_index(ascending=False)
         meses_nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-        # CRIANDO A ESCALA DE CORES FIXA
-        # Considerando um teto visual de 500mm para os cálculos das cores:
-        # 150/500 = 0.30 (30%)
-        # 400/500 = 0.80 (80%)
-        escala_fixa = [
-            [0.0, "#00b050"],   # Início (0mm) - Verde
-            [0.3, "#00b050"],   # Até 150mm - Verde
-            [0.3, "#ffc000"],   # Passou de 150mm - Vira Amarelo
-            [0.8, "#ffc000"],   # Até 400mm - Continua Amarelo
-            [0.8, "#e20000"],   # Passou de 400mm - Vira Vermelho
-            [1.0, "#e20000"]    # Até o infinito - Vermelho
+        # CRIANDO A ESCALA DE GRADIENTE PERSONALIZADA
+        # Travamos o teto em 500mm para manter a proporção constante sempre.
+        # 0.0 é 0mm (Verde forte)
+        # 0.3 é 150mm (Amarelo)
+        # 0.8 é 400mm (Vermelho)
+        # 1.0 é 500mm+ (Vinho escuro)
+        escala_gradiente = [
+            [0.0, "#1a9850"],   # Verde escuro (Sem chuva)
+            [0.3, "#ffffbf"],   # Amarelo claro (Aos 150mm)
+            [0.55, "#fdae61"],  # Laranja (Transição no meio do caminho)
+            [0.8, "#d73027"],   # Vermelho (Aos 400mm)
+            [1.0, "#67001f"]    # Vinho (Acima de 500mm)
         ]
 
         fig5 = px.imshow(
@@ -146,8 +145,8 @@ try:
             y=df_pivot.index,
             text_auto='.0f',
             aspect="auto",
-            color_continuous_scale=escala_fixa,
-            range_color=[0, 500] # O SEGREDO ESTÁ AQUI: Trava a escala de 0 a 500
+            color_continuous_scale=escala_gradiente,
+            range_color=[0, 500] # Garante que a escala não mude com o filtro!
         )
         
         fig5.update_xaxes(side="top")
