@@ -47,19 +47,18 @@ try:
         "Selecione o Período:", 
         min_value=ano_min, 
         max_value=ano_max, 
-        value=(ano_max - 10, ano_max) # Abriremos com 10 anos de histórico
+        value=(ano_max - 10, ano_max)
     )
 
     df_filtrado = df[(df['Ano'] >= anos_selecionados[0]) & (df['Ano'] <= anos_selecionados[1])].copy()
 
     # --- ABAS DO DASHBOARD ---
-    # Adicionamos a 5ª Aba para o Mapa de Calor
     aba1, aba2, aba3, aba4, aba5 = st.tabs([
         "📅 Visão Anual", 
         "📉 Visão Mensal", 
         "🌧️ Dias Chuvosos",
         "🔍 Detalhe Diário",
-        "🚜 Janelas de Terraplenagem (Heatmap)" # <--- NOVA ABA
+        "🚜 Janelas de Terraplenagem (Heatmap)"
     ])
 
     with aba1:
@@ -113,42 +112,46 @@ try:
         else:
             st.warning("Não há dados registrados para este mês e ano.")
 
-    # --- NOVA ABA: MAPA DE CALOR (HEATMAP) ---
+    # --- ABA 5 ATUALIZADA: MAPA DE CALOR FIXO ---
     with aba5:
         st.subheader("Mapa de Calor: Planejamento de Terraplenagem e Fundações")
         st.markdown("""
-        **Guia de Cores:** 🟢 **Verde (Seco):** Ideal para movimento de terra e fundações.  
-        🟡 **Amarelo/Laranja (Moderado):** Possíveis interrupções pontuais. Planejar bombeamento.  
-        🔴 **Vermelho (Chuvoso):** Alto risco de atoleiros e dias perdidos. Focar em serviços internos.
+        **Regras de Cor (Absolutas e Fixas):** 🟢 **Verde:** Menos de 150 mm (Ideal)  
+        🟡 **Amarelo:** De 150 mm a 400 mm (Atenção moderada)  
+        🔴 **Vermelho:** Acima de 400 mm (Alto risco)
         """)
 
-        # 1. Agrupar a chuva por Ano e Mês
         df_heatmap = df_filtrado.groupby(['Ano', 'Mes'])['Chuva'].sum().reset_index()
-        
-        # 2. Transformar os dados no formato de "Tabela" (Matriz) onde Linhas = Ano, Colunas = Mês
         df_pivot = df_heatmap.pivot(index='Ano', columns='Mes', values='Chuva')
-        
-        # Inverter a ordem dos anos para que os anos mais recentes fiquem no topo
         df_pivot = df_pivot.sort_index(ascending=False)
-        
-        # Nomes dos meses para o eixo X
         meses_nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-        # 3. Criar o Gráfico de Heatmap
-        # O color_continuous_scale='RdYlGn_r' cria o gradiente: Red (Vermelho), Yellow (Amarelo), Green (Verde) e o "_r" inverte para que Chuva Baixa = Verde.
+        # CRIANDO A ESCALA DE CORES FIXA
+        # Considerando um teto visual de 500mm para os cálculos das cores:
+        # 150/500 = 0.30 (30%)
+        # 400/500 = 0.80 (80%)
+        escala_fixa = [
+            [0.0, "#00b050"],   # Início (0mm) - Verde
+            [0.3, "#00b050"],   # Até 150mm - Verde
+            [0.3, "#ffc000"],   # Passou de 150mm - Vira Amarelo
+            [0.8, "#ffc000"],   # Até 400mm - Continua Amarelo
+            [0.8, "#e20000"],   # Passou de 400mm - Vira Vermelho
+            [1.0, "#e20000"]    # Até o infinito - Vermelho
+        ]
+
         fig5 = px.imshow(
             df_pivot,
             labels=dict(x="Mês", y="Ano", color="Precipitação (mm)"),
             x=meses_nomes,
             y=df_pivot.index,
-            text_auto='.0f', # Mostra o valor da chuva no quadradinho
+            text_auto='.0f',
             aspect="auto",
-            color_continuous_scale='RdYlGn_r' 
+            color_continuous_scale=escala_fixa,
+            range_color=[0, 500] # O SEGREDO ESTÁ AQUI: Trava a escala de 0 a 500
         )
         
-        # Ajustes de visualização para ficar mais bonito
-        fig5.update_xaxes(side="top") # Coloca os meses na parte de cima
-        fig5.update_layout(height=600) # Deixa o gráfico mais alto
+        fig5.update_xaxes(side="top")
+        fig5.update_layout(height=600)
         
         st.plotly_chart(fig5, use_container_width=True)
 
