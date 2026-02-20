@@ -116,7 +116,7 @@ try:
     with aba5:
         st.subheader("Mapa de Calor: Planejamento de Terraplenagem e Fundações")
         st.markdown("""
-        **Transição de Cores:** 🟢 **Verde:** Tendendo a 0 mm | 🟡 **Amarelo:** Chegando em 150 mm | 🔴 **Vermelho:** Acima de 400 mm
+        **Transição de Cores:** 🟢 **Verde:** Poucas Chuvas | 🟡 **Amarelo:** Chuvas Moderadas | 🔴 **Vermelho:** Muita chuva
         """)
 
         df_heatmap = df_filtrado.groupby(['Ano', 'Mes'])['Chuva'].sum().reset_index()
@@ -156,3 +156,4 @@ try:
 
 except Exception as e:
     st.error(f"Ocorreu um erro: {e}. Verifique o arquivo CSV.")
+
